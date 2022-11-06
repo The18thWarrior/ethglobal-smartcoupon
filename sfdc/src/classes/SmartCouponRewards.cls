@@ -2,14 +2,14 @@ public with sharing class SmartCouponRewards {
   public class rewardRequest  {
     public String imageUrl;
     public String type;
-    public Integer initialSupply;
+    public String initialSupply;
     public String symbol;
     public String name;
   }
 
   public class rewardSubmission  {
     public String imageUrl;
-    public Integer amount;
+    public String amount;
     public String contractAddress;
     public String walletAddress;
     public String symbol;
@@ -26,7 +26,7 @@ public with sharing class SmartCouponRewards {
     rewardRequest rewardReq = new rewardRequest();
     rewardReq.imageUrl = reward.Image_Url__c;
     rewardReq.type = reward.Type__c;
-    rewardReq.initialSupply = Integer.valueOf(reward.Supply__c);
+    rewardReq.initialSupply = String.valueOf(reward.Supply__c);
     rewardReq.symbol = reward.Symbol__c;
     rewardReq.name = reward.Name;
     
@@ -61,7 +61,7 @@ public with sharing class SmartCouponRewards {
     rewardReq.imageUrl = reward.Image_Url__c;
     rewardReq.walletAddress = member.Web3_Address__r.Address__c;
     rewardReq.contractAddress = reward.Contract_Address__c;
-    rewardReq.amount = Integer.valueOf(reward.Supply__c);
+    rewardReq.amount = String.valueOf(reward.Supply__c);
     rewardReq.symbol = reward.Symbol__c;
     rewardReq.name = reward.Name;
     
