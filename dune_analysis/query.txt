@@ -1,0 +1,78 @@
+with
+  current_owners AS (
+    SELECT
+      owner,
+      SUM(amount) AS total
+    FROM
+      (
+        SELECT
+          "to" AS owner,
+          SUM(value) AS amount
+        FROM
+          erc1155."ERC1155_evt_TransferSingle"
+        WHERE
+          "contract_address" = {{'test'}}--'\x28472a58A490c5e09A238847F66A68a47cC76f0f'
+          and "to" != '\x0000000000000000000000000000000000000000'
+        GROUP BY
+          "to"
+        UNION
+        SELECT
+          "from" AS owner,
+          - SUM(value) AS amount
+        FROM
+          erc1155."ERC1155_evt_TransferSingle"
+        WHERE
+          "contract_address" = '\x28472a58A490c5e09A238847F66A68a47cC76f0f'
+          and "from" != '\x0000000000000000000000000000000000000000'
+        GROUP BY
+          "from"
+        UNION
+        SELECT
+          owner,
+          SUM(value) AS amount
+        FROM
+          (
+            SELECT
+              "to" AS owner,
+              unnest(ids) AS tokenid,
+              unnest(
+                values
+              ) AS value
+            FROM
+              erc1155."ERC1155_evt_TransferBatch"
+            WHERE
+              "contract_address" = '\x28472a58A490c5e09A238847F66A68a47cC76f0f'
+              and "to" != '\x0000000000000000000000000000000000000000'
+            GROUP BY
+              "to",
+              ids,
+              value
+            UNION
+            SELECT
+              "from" AS owner,
+              unnest(ids) AS tokenid,
+              -1 * unnest(
+                values
+              ) AS value
+            FROM
+              erc1155."ERC1155_evt_TransferBatch"
+            WHERE
+              "contract_address" = '\x28472a58A490c5e09A238847F66A68a47cC76f0f'
+              and "from" != '\x0000000000000000000000000000000000000000'
+            GROUP BY
+              "from",
+              ids,
+              value
+          ) t1
+        GROUP BY
+          owner
+      ) t2
+    GROUP BY
+      1
+  )
+SELECT
+  *
+FROM
+  current_owners
+WHERE
+  total > 10
