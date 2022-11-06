@@ -1,5 +1,5 @@
-@RestResource(urlMapping='/SmartCoupon')
-global with sharing class SmartCouponRestResource {
+@RestResource(urlMapping='/SmartCoupon/*')
+global without sharing class SmartCouponRestResource {
     // Top 100 male and female from US data in 2014
     public static List<String> firstNames = new List<String>{
         'Aaliyah',
@@ -411,45 +411,63 @@ global with sharing class SmartCouponRestResource {
 
     @HttpPost
     global static void createWeb3Address() {
-        RequestData web3Info = (RequestData) JSON.deserialize(RestContext.Request.requestBody.toString(), RequestData.class);
-        List<Web3Address__c> web3Address = [
-            SELECT Id, Contact__c, Lead__c
-            FROM Web3Address__c
-            WHERE Address__c = :web3Info.address
-        ];
-        if (!web3Address.isEmpty()) {
-            if (web3Address[0].Lead__c != null) {
-                Lead updatedLead = new Lead(
-                    Id = web3Address[0].Lead__c,
-                    Email = web3Info.email,
-                    LinkedIn_URL__c = web3Info.linkedInURL,
-                    Twitter__c = web3Info.twitter,
-                    Discord__c = web3Info.discord
-                );
-                update updatedLead;
+        try {
+            RequestData web3Info = (RequestData) JSON.deserialize(RestContext.Request.requestBody.toString(), RequestData.class);
+            List<Web3Address__c> web3Address = [
+                SELECT Id, Contact__c, Lead__c
+                FROM Web3Address__c
+                WHERE Address__c = :web3Info.address
+            ];
+            System.debug(web3Address);
+            System.debug(web3Info.address);
+            if (!web3Address.isEmpty()) {
+                System.debug('Not empty!');
+                if (web3Address[0].Lead__c != null) {
+                    Lead updatedLead = new Lead(
+                        Id = web3Address[0].Lead__c,
+                        Email = web3Info.email,
+                        LinkedIn_URL__c = web3Info.linkedInURL,
+                        Twitter__c = web3Info.twitter,
+                        Discord__c = web3Info.discord
+                    );
+                    update updatedLead;
+                } else {
+                    Contact updatedContact = new Contact(
+                        Id = web3Address[0].Contact__c,
+                        Email = web3Info.email,
+                        LinkedIn_URL__c = web3Info.linkedInURL,
+                        Twitter__c = web3Info.twitter,
+                        Discord__c = web3Info.discord
+                    );
+                    update updatedContact;
+                }
             } else {
-                Contact updatedContact = new Contact(
-                    Id = web3Address[0].Contact__c,
+                System.debug('Empty!');
+                Lead newLead = new Lead(
                     Email = web3Info.email,
                     LinkedIn_URL__c = web3Info.linkedInURL,
                     Twitter__c = web3Info.twitter,
-                    Discord__c = web3Info.discord
+                    Discord__c = web3Info.discord,
+                    lastName = SmartCouponRestResource.lastNames[(Integer) (Math.random() * SmartCouponRestResource.lastNames.size())],
+                    firstName = SmartCouponRestResource.firstNames[(Integer) (Math.random() * SmartCouponRestResource.firstNames.size())],
+                    Company = 'Watto Shop'
                 );
-                update updatedContact;
+                insert newLead;
+                Web3Address__c newWeb3Address = new Web3Address__c(Lead__c = newLead.Id, Address__c = web3Info.address);
+                insert newWeb3Address;
+                Web3Address__c newWeb3AddressReference = new Web3Address__c(Address__c = web3Info.address);
+                Web3CampaignMember__c newCampaignMember = new Web3CampaignMember__c(
+                    Lead__c = newLead.Id,
+                    Web3_Address__r = newWeb3AddressReference,
+                    Web3_Campaign__c = 'a00Do00000163cFIAQ'
+                );
+                insert newCampaignMember;
             }
-        } else {
-            Lead newLead = new Lead(
-                Email = web3Info.email,
-                LinkedIn_URL__c = web3Info.linkedInURL,
-                Twitter__c = web3Info.twitter,
-                Discord__c = web3Info.discord,
-                lastName = SmartCouponRestResource.lastNames[(Integer) (Math.random() * SmartCouponRestResource.lastNames.size())],
-                firstName = SmartCouponRestResource.firstNames[(Integer) (Math.random() * SmartCouponRestResource.firstNames.size())],
-                Company = 'Watto Shop'
-            );
-            insert newLead;
-            Web3Address__c newWeb3Address = new Web3Address__c(Lead__c = newLead.Id, Address__c = web3Info.address);
-            insert newWeb3Address;
+            RestContext.response.statusCode = 200;
+            RestContext.response.responseBody = Blob.valueOf('Success');
+        } catch (Exception e) {
+            RestContext.response.statusCode = 500;
+            RestContext.response.responseBody = Blob.valueOf(e.getMessage());
         }
     }
 
@@ -459,5 +477,41 @@ global with sharing class SmartCouponRestResource {
         public String linkedInURL;
         public String twitter;
         public String discord;
+    }
+
+    @HttpGet
+    global static String getRewards() {
+        RestRequest req = RestContext.request;
+        RestResponse res = RestContext.response;
+        String web3Address = req.requestURI.substring(req.requestURI.lastIndexOf('/') + 1);
+        System.debug(web3Address);
+        List<Web3CampaignResult__c> results = [
+            SELECT Web3_Campaign_Reward__r.Contract_Address__c, Web3_Campaign_Reward__r.Type__c, Web3_Campaign_Reward__r.Image_Url__c
+            FROM Web3CampaignResult__c
+            WHERE Web3_Campaign_Member__r.Web3_Address__r.Address__c = :web3Address
+        ];
+        List<ResponseData> formattedResponse = new List<ResponseData>();
+        for (Web3CampaignResult__c result : results) {
+            System.debug(result.Web3_Campaign_Reward__r);
+            ResponseData resultFormatted = new ResponseData(
+                result.Web3_Campaign_Reward__r.Type__c,
+                result.Web3_Campaign_Reward__r.Image_Url__c,
+                result.Web3_Campaign_Reward__r.Contract_Address__c
+            );
+            formattedResponse.add(resultFormatted);
+        }
+        return JSON.serialize(formattedResponse);
+    }
+
+    global class ResponseData {
+        public String type;
+        public String imageUrl;
+        public String contractAddress;
+
+        public ResponseData(String newType, String newImageUrl, String newContractAddress) {
+            type = newType;
+            imageUrl = newImageUrl;
+            contractAddress = newContractAddress;
+        }
     }
 }
