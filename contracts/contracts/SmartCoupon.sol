@@ -46,12 +46,14 @@ contract SmartCoupon is Initializable, PausableUpgradeable, AccessControlUpgrade
     ownerPayable.transfer(address(this).balance);
   }
 
-  function createErc20Token(string calldata tokenName, string calldata symbol, uint256 supply, address to) external {
+  function createErc20Token(string calldata tokenName, string calldata symbol, uint256 supply, address to) external returns(address){
     ERC20_Source child = new ERC20_Source(tokenName, symbol, supply, to);
     //children.push(child);
     //uint256 tokenIndex = children.length;
     uint256 tokenIndex = _contractIndex.current();
     _contractIndex.increment();
     indexToAddress[tokenIndex] = address(child);
+
+    return address(child);
   }
 }

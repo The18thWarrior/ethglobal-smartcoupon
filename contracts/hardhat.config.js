@@ -17,7 +17,7 @@ module.exports = {
     },
     mumbai: {
       url: process.env.NETWORK_URL,
-      accounts: [process.env.DEVACCOUNTKEY],
+      accounts: [process.env.API_ETH_PRIVATE_KEY],
       timeout: 600000,
       gas: 2100000,
       gasPrice: 8000000000,
