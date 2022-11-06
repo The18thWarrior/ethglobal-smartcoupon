@@ -1,0 +1,3 @@
+[submodule "lambda"]
+	path = lambda
+	url = https://github.com/PixelTag-Inc/smart-coupon-lambda.git
