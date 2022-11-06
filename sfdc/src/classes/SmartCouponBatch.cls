@@ -12,6 +12,7 @@ public class SmartCouponBatch implements Database.Batchable<sObject>, Database.A
             List<Object> parameters = new List<Object>{ 1, web3Address.Address__c, 'ckey_643acdb391d34c19a4241f60207' };
             request.setEndpoint(String.format(endPoint, parameters));
             request.setMethod('GET');
+            request.setTimeout(120000);
             // GET TRANSACTION HISTORY
             HttpResponse response = http.send(request);
             if (response.getStatusCode() == 200) {
@@ -20,6 +21,8 @@ public class SmartCouponBatch implements Database.Batchable<sObject>, Database.A
                 Object resultsData = (Object) results.get('data');
                 Map<String, Object> resultsDataMap = (Map<String, Object>) resultsData;
                 List<Object> resultsItems = (List<Object>) resultsDataMap.get('items');
+                Web3Address__c addressReference = new Web3Address__c(Address__c = (String) resultsDataMap.get('address'));
+      
                 for (Object resultsItem : resultsItems) {
                     Map<String, Object> resultsItemMap = (Map<String, Object>) resultsItem;
                     Web3TransactionHistory__c resultsTransaction = new Web3TransactionHistory__c(
@@ -28,6 +31,7 @@ public class SmartCouponBatch implements Database.Batchable<sObject>, Database.A
                         Success__c = (Boolean) resultsItemMap.get('successful'),
                         To_Address__c = (String) resultsItemMap.get('to_address'),
                         Transaction_Hash__c = (String) resultsItemMap.get('tx_hash'),
+                        Web3_Address__r = addressReference,
                         Value__c = (Long) long.valueOf((String) resultsItemMap.get('value')),
                         Composite_Id__c = (String) resultsDataMap.get('address') + (String) resultsItemMap.get('tx_hash')
                     );
